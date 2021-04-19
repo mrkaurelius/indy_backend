@@ -15,11 +15,18 @@ Finally, Prover stores Credential in its wallet.
 import asyncio
 import json
 import pprint
+import logging
 
 from indy import pool, ledger, wallet, did, anoncreds
 from indy.error import ErrorCode, IndyError
 
 from utils import open_wallet, get_pool_genesis_txn_path, PROTOCOL_VERSION
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+    datefmt="%d/%b/%Y-%H:%M:%S")
+
 
 pool_name = 'sandbox'
 issuer_wallet_config = json.dumps({"id": "issuer_wallet"})
@@ -160,9 +167,14 @@ async def issue_credential():
         print_log('\n14. Issuer (Trust Anchor) is creating a Credential Offer for Prover\n')
         cred_offer_json = await anoncreds.issuer_create_credential_offer(issuer_wallet_handle,
                                                                          cred_def_id)
+        
+        # cred_offer_json = None
+
         print_log('Credential Offer: ')
         pprint.pprint(json.loads(cred_offer_json))
 
+        # await anoncreds.craete
+        
         # 15.
         print_log('\n15. Prover creates Credential Request for the given credential offer\n')
         (cred_req_json, cred_req_metadata_json) = \

@@ -1,0 +1,10 @@
+{
+    "pool_name": "sandbox",
+    "wallet_config": "{\"id\": \"server_wallet\"}",
+    "wallet_credentials": "{\"key\": \"very_secret_key\"}",
+    "steward_did": "Th7MpTaRZVRYnPiabds81Y",
+    "steward_verkey": "FYmoFw55GeQH7SRFa37dkx1d2dZ3zUF8ckg7wmL7ofN4",
+    "trust_anchor_seed": "000000000000000ServerTrusteeSeed",
+    "trust_anchor_verkey": "3n2GR7zXpKJQiD63caGZu57ySaHAZjRwCrFoxJY35NA9",
+    "trust_anchor_did": "66SCXwmsyzNut3zbQk4iKc"
+}

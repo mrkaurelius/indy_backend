@@ -1,0 +1,3 @@
+"""
+Indy SDK crendential helper.
+"""
