@@ -18,4 +18,6 @@
 
 ## Sonraki hedefler
 
-- [] Negotiate Proof HTTP mesajlarinı tasarla 
+- [] credential init'i tamamla
+- [] endpointleri implement et
+- [] Negotiate Proof HTTP mesajlarinı tasarla
