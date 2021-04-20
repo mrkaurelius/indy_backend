@@ -23,6 +23,8 @@ async def start_indy(indy_config):
     :return: pool_handle, wallet_handle
     """
 
+    await pool.set_protocol_version(PROTOCOL_VERSION)
+    
     config = indy_config
     wallet_handle, pool_handle = None, None
     try:

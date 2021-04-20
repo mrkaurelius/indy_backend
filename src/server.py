@@ -41,7 +41,7 @@ async def on_shutdown(app):
 
 
 async def on_startup(app):
-    print("starting")
+    print("Starting Indy")
     pool_handle, wallet_handle = await start_indy(indy_config) 
     app["pool_handle"] = pool_handle
     app["wallet_handle"] = wallet_handle

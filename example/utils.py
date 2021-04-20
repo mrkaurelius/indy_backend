@@ -2,6 +2,9 @@ from os import environ
 from pathlib import Path
 from tempfile import gettempdir
 
+from indy import wallet
+from indy.error import ErrorCode, IndyError
+
 PROTOCOL_VERSION = 2
 
 def get_pool_genesis_txn_path(pool_name):

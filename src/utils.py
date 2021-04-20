@@ -47,3 +47,9 @@ async def open_wallet(wallet_config, wallet_credentials):
         if ex.error_code == ErrorCode.WalletAlreadyExistsError:
             pass
     return await wallet.open_wallet(wallet_config, wallet_credentials)
+
+def print_log(value_color="", value_noncolor=""):
+    """set the colors for text."""
+    HEADER = '\033[92m'
+    ENDC = '\033[0m'
+    print(HEADER + value_color + ENDC + str(value_noncolor))
