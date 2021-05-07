@@ -1,0 +1,12 @@
+[
+    {
+        "name": "gvt",
+        "version": "1.0",
+        "attributes": "[\"age\", \"sex\", \"height\", \"name\"]"
+    },
+    {
+        "name": "cvd",
+        "version": "1.0",
+        "attributes": "[\"testdate\", \"result\"]"
+    }
+]
