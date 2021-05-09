@@ -1,0 +1,1 @@
+- logginglerin seviyeleri dogru ayarlanmamis birbirlerini takmiyorlar. loggingi duzgun yap
