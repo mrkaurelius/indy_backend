@@ -17,7 +17,7 @@ from server_util import start_indy, stop_indy
 from utils import get_indy_config, print_server_qr_terminal, print_warn, print_ok, print_fail
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 # TODO handle'leri boyle tanimlamak ne kadar dogru
 indy_config = get_indy_config()
@@ -27,11 +27,11 @@ wallet_handle = None
 
 # TODO handle lar cirkin olmadan nasil olur
 # TODO kritik yerleri kirmizi yap
-async def save_schema_to_ledger(pool_handle, wallet_handle, schema):
+async def _save_schema_to_ledger(pool_handle, wallet_handle, schema):
     '''
     schemayi ledgere indy confige gore ekler ve shema_id yi geri doner
 
-    returns: schema_id
+    returns: schema_id, None
     '''
 
     steward_did = indy_config['steward_did']
@@ -77,7 +77,7 @@ def get_schema_defs():
     ledgere eklenmemis (schema tanimlari) schemalari listele
     """
 
-    with open('json_schemas/indy/indy_schemas.json', 'r') as f:
+    with open('json_schemas/indy_schemas.json', 'r') as f:
         schemas = f.read()
         return schemas
 
@@ -92,7 +92,7 @@ def get_added_schemas():
         return schemas
 
 
-async def init_schemas():
+async def _init_schemas():
     """
     tanimlanmis schemalari ledgere ekler ve schema id leri server_json/server_schemas.json'a yazar
     """
@@ -106,37 +106,20 @@ async def init_schemas():
     print(schemas)
 
     for s in schemas:
-        schema_id = await save_schema_to_ledger(pool_handle, wallet_handle, s)
+        schema_id = await _save_schema_to_ledger(pool_handle, wallet_handle, s)
         if schema_id != None:
             schema_ids.append(schema_id)
 
     # print_warn(schema_ids)
 
     if len(schema_ids) > 0:
-        print_ok('writing schema ids to json.')
-
+        print_ok('writing schema ids to json')
         with open('server_json/server_schemas.json', 'w') as f:
             f.write(json.dumps(schema_ids))
 
     await stop_indy(pool_handle, wallet_handle)
 
 
-# gelistirme amacli dummy
-async def dummy():
-    print('saving schema')
-    schema = {
-        'name': 'gvtaa',
-        'version': '1.0',
-        'attributes': '["age", "sex", "height", "name"]'
-    }
-
-    pool_handle, wallet_handle = await start_indy(indy_config)
-
-    await save_schema_to_ledger(pool_handle, wallet_handle, schema)
-
-    await stop_indy(pool_handle, wallet_handle)
-
-# TODO cli olarak calismayi destekle
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--init', action='store_true', help='init schemes')
@@ -147,7 +130,7 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     if args.init:
         print("initing schemas")
-        loop.run_until_complete(init_schemas())
+        loop.run_until_complete(_init_schemas())
 
     elif args.list_schema_defs:
         print('listing schema defs')
@@ -159,6 +142,7 @@ if __name__ == "__main__":
         added_schemas = get_added_schemas()
         print(added_schemas)
     else:
-        loop.run_until_complete(dummy())
+        # loop.run_until_complete(dummy())
+        pass
 
     loop.close()

@@ -1,12 +1,33 @@
 import logging
+import json
 
 from os import environ
 from pathlib import Path
 from tempfile import gettempdir
+from hashlib import sha256
+import pyqrcode
 
 PROTOCOL_VERSION = 2
 
 logging.basicConfig(level=logging.INFO)
+
+WARNING = '\033[93m'
+OKGREEN = '\033[92m'
+FAIL = '\033[91m'
+ENDC = '\033[0m'
+
+
+def print_warn(str):
+    print(f"{WARNING}{str}{ENDC}")
+
+
+def print_ok(str):
+    print(f"{OKGREEN}{str}{ENDC}")
+
+
+def print_fail(str):
+    print(f"{FAIL}{str}{ENDC}")
+
 
 def get_pool_genesis_txn_path(pool_name):
     "/tmp de indy klasoru olusturu ve genesis dosyasini buraya kaydeder"
@@ -16,6 +37,7 @@ def get_pool_genesis_txn_path(pool_name):
     logging.info("pool genesis path: {}".format(path))
     save_pool_genesis_txn_file(path)
     return path
+
 
 def pool_genesis_txn_data():
     # pool_ip = environ.get("TEST_POOL_IP", "127.0.0.1")
@@ -33,6 +55,7 @@ def pool_genesis_txn_data():
             pool_ip, pool_ip)
     ])
 
+
 def save_pool_genesis_txn_file(path):
     data = pool_genesis_txn_data()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -40,6 +63,8 @@ def save_pool_genesis_txn_file(path):
         f.writelines(data)
 
 # Open and create wallet if not exists
+
+
 async def open_wallet(wallet_config, wallet_credentials):
     try:
         await wallet.create_wallet(wallet_config, wallet_credentials)
@@ -48,8 +73,32 @@ async def open_wallet(wallet_config, wallet_credentials):
             pass
     return await wallet.open_wallet(wallet_config, wallet_credentials)
 
+
 def print_log(value_color="", value_noncolor=""):
     """set the colors for text."""
     HEADER = '\033[92m'
     ENDC = '\033[0m'
     print(HEADER + value_color + ENDC + str(value_noncolor))
+
+
+def read_minified_json_str(filepath):
+    with open("json_schemas/server_qr.json") as f:
+        json_str = f.read()
+        json_obj = json.loads(json_str)
+        # minify json
+        return json.dumps(json_obj, separators=(',', ":"))
+
+
+def print_server_qr_terminal():
+    server_qr_json = read_minified_json_str("json_schemas/server_qr.json")
+    qr = pyqrcode.create(server_qr_json)
+    print(qr.terminal(quiet_zone=1))
+
+
+def get_indy_config(path="indy_config.json"):
+    with open(path) as config_json:
+        return json.load(config_json)
+
+
+def sha256_digest_hex(msg):
+    return sha256(msg.encode('utf-8')).hexdigest()

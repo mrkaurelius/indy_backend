@@ -15,6 +15,8 @@ from indy.error import IndyError, ErrorCode, PaymentOperationNotSupportedError
 
 from utils import get_pool_genesis_txn_path, PROTOCOL_VERSION
 
+logging.basicConfig(level=logging.INFO)
+
 
 async def start_indy(indy_config):
     """
@@ -24,7 +26,7 @@ async def start_indy(indy_config):
     """
 
     await pool.set_protocol_version(PROTOCOL_VERSION)
-    
+
     config = indy_config
     wallet_handle, pool_handle = None, None
     try:
@@ -34,13 +36,14 @@ async def start_indy(indy_config):
     except IndyError as e:
         logging.error(e.message)
 
-    return int(pool_handle), int(wallet_handle) 
+    return int(pool_handle), int(wallet_handle)
 
 
 async def stop_indy(pool_handle, wallet_handle):
     """
     pool'u ve wallet'i gracefully sekilde kapatir.
     """
+
     try:
         logging.info("Stopping indy, closing wallet and pool")
         await wallet.close_wallet(wallet_handle)
@@ -55,6 +58,7 @@ async def init_indy():
     wallet create eder, serverin didini trust anchor olarak ekler
     yaptigi islerin bir json dosyasina kayit eder, 
     """
+
     indy_config = {}
     pool_name = 'sandbox'
     indy_config["pool_name"] = pool_name
@@ -85,7 +89,8 @@ async def init_indy():
             await wallet.create_wallet(wallet_config, wallet_credentials)
         except IndyError as ex:
             if ex.error_code == ErrorCode.WalletAlreadyExistsError:
-                logging.warning("wallet already exists  {}".format(wallet_config))
+                logging.warning(
+                    "wallet already exists  {}".format(wallet_config))
                 pass
 
         logging.info("Open wallet and get handle from libindy")
@@ -96,29 +101,30 @@ async def init_indy():
         steward_did, steward_verkey = await did.create_and_store_my_did(wallet_handle, did_json)
         indy_config["steward_did"] = steward_did
         indy_config["steward_verkey"] = steward_verkey
-        logging.info('Steward DID: {}, Steward Verkey: {}'.format(steward_did, steward_verkey))
+        logging.info('Steward DID: {}, Steward Verkey: {}'.format(
+            steward_did, steward_verkey))
 
         logging.info("Generating and storing trust anchor DID and verkey")
         trust_anchor_seed = '000000000000000ServerTrusteeSeed'
-        trust_anchor_did_json = json.dumps({'seed': trust_anchor_seed })
+        trust_anchor_did_json = json.dumps({'seed': trust_anchor_seed})
         trust_anchor_did, trust_anchor_verkey = None, None
         try:
-            trust_anchor_did, trust_anchor_verkey = await did.create_and_store_my_did(wallet_handle, trust_anchor_did_json )
+            trust_anchor_did, trust_anchor_verkey = await did.create_and_store_my_did(wallet_handle, trust_anchor_did_json)
         except IndyError as e:
             logging.warning('Error occurred: {}'.format(e.message))
 
-        logging.info("Trust anchor seed: {}, Trust anchor DID: {}, Trusf anchor Verkey: {}".format(trust_anchor_seed, trust_anchor_did, trust_anchor_verkey))
-        indy_config["trust_anchor_seed"] = trust_anchor_seed 
-        indy_config["trust_anchor_verkey"] = trust_anchor_verkey 
-        indy_config["trust_anchor_did"] = trust_anchor_did 
+        logging.info("Trust anchor seed: {}, Trust anchor DID: {}, Trusf anchor Verkey: {}".format(
+            trust_anchor_seed, trust_anchor_did, trust_anchor_verkey))
+        indy_config["trust_anchor_seed"] = trust_anchor_seed
+        indy_config["trust_anchor_verkey"] = trust_anchor_verkey
+        indy_config["trust_anchor_did"] = trust_anchor_did
 
         # set did metadata
         try:
-            await did.set_did_metadata(wallet_handle,trust_anchor_did,"trust anchor did")
-            await did.set_did_metadata(wallet_handle,steward_did,"steward did")
-        except IndyError as e: 
+            await did.set_did_metadata(wallet_handle, trust_anchor_did, "trust anchor did")
+            await did.set_did_metadata(wallet_handle, steward_did, "steward did")
+        except IndyError as e:
             logging.warning('Error occurred: {}'.format(e.message))
-
 
         logging.info("Building NYM request to add Trust Anchor to the ledger")
         nym_transaction_request = await ledger.build_nym_request(submitter_did=steward_did,
@@ -126,19 +132,19 @@ async def init_indy():
                                                                  ver_key=trust_anchor_verkey,
                                                                  alias=None,
                                                                  role='TRUST_ANCHOR')
-                                                                 
 
-        logging.info("NYM transaction request: {}".format(json.loads(nym_transaction_request)))
+        logging.info("NYM transaction request: {}".format(
+            json.loads(nym_transaction_request)))
         logging.info("Sending NYM request to the ledger")
         nym_transaction_response = await ledger.sign_and_submit_request(pool_handle=pool_handle,
                                                                         wallet_handle=wallet_handle,
                                                                         submitter_did=steward_did,
                                                                         request_json=nym_transaction_request)
-        logging.info("NYM transaction response: {}".format(nym_transaction_response))
+        logging.info("NYM transaction response: {}".format(
+            nym_transaction_response))
 
         with open('indy_config.json', 'w', encoding='utf-8') as f:
             json.dump(indy_config, f, ensure_ascii=False, indent=4)
-
 
         # add trust anchor did to wallet
 
@@ -150,22 +156,16 @@ async def init_indy():
         logging.warning('Error occurred: %s' % e.message)
 
 
-async def init_creds(arg):
-    """
-    init schemes, credential definitions vb...
-    """
-    pass
 
 """
 indy server kurulumu icin script
 """
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
     pp = pprint.PrettyPrinter(indent=4)
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--init', action='store_true', help='init indy')
-    parser.add_argument('--remove-config', action='store_true', help='init indy')
+    parser.add_argument('--remove-config',
+                        action='store_true', help='init indy')
     args = parser.parse_args()
     print(args)
 
@@ -177,7 +177,7 @@ if __name__ == '__main__':
         print("Indy configi init edildi")
     elif args.remove_config:
         print("Indy configi siliniyor")
-        # TODO 
+        # TODO
         # remove config
     else:
         print("yapacak birsey yok")
