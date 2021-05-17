@@ -8,12 +8,14 @@ import parser
 import json
 import requests
 import logging
+import base64
 
 from utils import print_fail, print_ok, print_server_qr_terminal, PROTOCOL_VERSION, print_warn
-from indy import anoncreds, pool, ledger, wallet, did
+from indy import anoncreds, pool, ledger, wallet, did, crypto
 from indy.error import IndyError, ErrorCode
 
 logging.basicConfig(level=logging.DEBUG)
+
 
 async def main():
     pass
@@ -47,7 +49,7 @@ async def get_credential():
     # print(cred_offer_url)
     req = requests.get(cred_offer_url)
     cred_offer_ret = req.text
-    cred_offer_ret  = json.loads(cred_offer_ret)
+    cred_offer_ret = json.loads(cred_offer_ret)
     cred_offer_json = cred_offer_ret['cred_offer_json']
     cred_offer_json = json.loads(cred_offer_json)
     cred_offer_json = json.dumps(cred_offer_json)
@@ -77,11 +79,11 @@ async def get_credential():
     client_dids = json.loads(client_dids)
     client_did = client_dids[0]['did']
     print_warn(f'client did: {client_did}')
-    
+
     # print_fail(f'{cred_defs[0]}, {type(cred_defs[0])}')
 
     (cred_req_json, cred_req_metadata_json) = \
-    await anoncreds.prover_create_credential_req(wallet_handle, client_did, cred_offer_json, cred_def_json , link_secret_name) 
+        await anoncreds.prover_create_credential_req(wallet_handle, client_did, cred_offer_json, cred_def_json, link_secret_name)
     print_ok('credential request created!')
 
     cred_req_body['cred_offer_json'] = cred_offer_json
@@ -99,14 +101,15 @@ async def get_credential():
     print_ok(cred_id)
 
     # 5. list cred
-    
+
     pass
+
 
 async def list_credentials():
     '''
     list 
     '''
-    
+
     wallet_config = json.dumps({"id": "client_wallet"})
     wallet_credentials = json.dumps({"key": "very_secret_key"})
     wallet_handle = await wallet.open_wallet(wallet_config, wallet_credentials)
@@ -119,13 +122,15 @@ async def list_credentials():
 async def init_client():
     '''
     init client indy
+
+    TODO ledgere did'i buradaki seed'i kullanarak ekledim, init scripte tx ile did'i ledgere ekleme
+    fonksiyonunu ekle
     '''
-    
+
     try:
         await pool.set_protocol_version(PROTOCOL_VERSION)
         wallet_config = json.dumps({"id": "client_wallet"})
         wallet_credentials = json.dumps({"key": "very_secret_key"})
-
 
         print_warn('creating wallet for client')
         try:
@@ -143,14 +148,61 @@ async def init_client():
 
         link_secret_name = 'link_secret'
         link_secret_id = await anoncreds.prover_create_master_secret(wallet_handle,
-                                                                        link_secret_name)
+                                                                     link_secret_name)
 
     except Exception as e:
         print_fail(e)
         raise e
 
 
-    pass
+async def list_dids():
+    wallet_config = json.dumps({"id": "client_wallet"})
+    wallet_credentials = json.dumps({"key": "very_secret_key"})
+    wallet_handle = await wallet.open_wallet(wallet_config, wallet_credentials)
+    dids = await did.list_my_dids_with_meta(wallet_handle)
+    print_ok(dids)
+
+
+async def did_auth():
+    wallet_config = json.dumps({"id": "client_wallet"})
+    wallet_credentials = json.dumps({"key": "very_secret_key"})
+    wallet_handle = await wallet.open_wallet(wallet_config, wallet_credentials)
+    pool_handle = await pool.open_pool_ledger(config_name='sandbox', config=None)
+
+    dids = await did.list_my_dids_with_meta(wallet_handle)
+    # print(type(dids))
+    dids = json.loads(dids)
+    my_did_verkey = dids[0]['verkey']
+    my_did= dids[0]['did']
+
+    print(f"dids: {dids}")
+    print(f"my did verkey: {my_did_verkey}")
+
+    req = requests.get('http://localhost:3000/auth/challenge')
+    challenge = json.loads(req.text)
+    print_ok(f"challenge: {challenge}")
+
+    # 1. get server verkey from ledger
+
+    server_verkey = await did.key_for_did(pool_handle, wallet_handle, str(challenge['sdid']))
+    print(f"server_verkey: {server_verkey}")
+    print(f"challenge nonce: {challenge['nonce']}")
+
+    # 2. create response
+
+    response = {}
+    response['sender_did'] = my_did
+    nonce = challenge['nonce']
+    msg = await crypto.auth_crypt(wallet_handle, my_did_verkey, server_verkey, nonce.encode('utf-8'))
+    msg_b64 = base64.b64encode(msg).decode('ascii')
+    response['response_msg'] = msg_b64
+    print_ok(f"response {response}")
+
+    # 3. send response
+
+    req = requests.post(url='http://localhost:3000/auth/response', json=response)
+    
+    # 4. retrive jwt
 
 
 if __name__ == "__main__":
@@ -159,8 +211,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--init', action='store_true', help='init client')
-    parser.add_argument('--list-creds', action='store_true', help='list credentials')
-    parser.add_argument('--get-cred', action='store_true', help='get cred from server')
+    parser.add_argument('--list-creds', action='store_true',
+                        help='list credentials')
+    parser.add_argument('--get-cred', action='store_true',
+                        help='get cred from server')
+    parser.add_argument('--list-dids', action='store_true', help='list dids')
+    parser.add_argument('--did-auth', action='store_true',
+                        help='did authhentication')
+
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
@@ -174,6 +232,14 @@ if __name__ == "__main__":
 
     elif args.list_creds:
         loop.run_until_complete(list_credentials())
+        pass
+
+    elif args.list_dids:
+        loop.run_until_complete(list_dids())
+        pass
+
+    elif args.did_auth:
+        loop.run_until_complete(did_auth())
         pass
 
     else:
