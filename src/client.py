@@ -9,6 +9,7 @@ import json
 import requests
 import logging
 import base64
+import jwt
 
 from utils import print_fail, print_ok, print_server_qr_terminal, PROTOCOL_VERSION, print_warn
 from indy import anoncreds, pool, ledger, wallet, did, crypto
@@ -201,9 +202,21 @@ async def did_auth():
     # 3. send response
 
     req = requests.post(url='http://localhost:3000/auth/response', json=response)
+    jwe_resp = json.loads(req.text)
+    print_ok(f"jwt_resp {jwe_resp}")
+    jwe_resp = json.loads(jwe_resp)
     
-    # 4. retrive jwt
+    # 4. retrive jwe
+    jwe = jwe_resp['jwe']
+    print_warn(jwe)
 
+    # 5. decript jwt
+    unpacked_msg = await crypto.unpack_message(wallet_handle, str.encode(jwe))
+    print_ok(f"unpacked msg: {unpacked_msg}")
+    unpacked_msg = json.loads(unpacked_msg)
+
+    jwt_token = unpacked_msg['message']
+    print_ok(f"jwt token: {jwt_token}")
 
 if __name__ == "__main__":
     # SERVER_HOST = 'localhost'

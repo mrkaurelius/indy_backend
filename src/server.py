@@ -5,7 +5,6 @@ Notlar
 - jsonlari indy ye vermeden once anlayacagi hale getir.
 """
 
-from re import A
 import pyqrcode
 import asyncio
 import json
@@ -13,6 +12,7 @@ import pprint
 import logging
 import secrets
 import base64
+import jwt
 
 from aiohttp import web
 from aiohttp.web_app import Application
@@ -184,14 +184,34 @@ async def handle_auth_response(request):
     print_ok(f"msg: {msg}")
     nonce = msg.decode('utf-8')
 
-    # 3. check nonce
-
-    if "nonce" in app['nonces']:
+    if nonce in app['nonces']:
         print_ok('nonce var jwt donuluyor')
 
-        # 4. generate jwt with hs256
+        # 4. generate jwt with hs256 
+
+        payload = {'iss': 'did:sov:' + client_did}
+        print_ok(f"payload: {payload}")
+        encoded_jwt = jwt.encode(payload, 'secret', algorithm="HS256")
+        print_ok(f"jwt: {encoded_jwt}")
 
         # 5. return jwt with auth encrypt
+
+        # jwt_auth_enc = await crypto.auth_crypt(wallet_handle, steward_verkey, client_verkey, encoded_jwt)
+        # print(f"jwt_auth_enc: {jwt_auth_enc}")
+        # jwt_auth_enc_b64 = base64.b64encode(jwt_auth_enc).decode('ascii')
+        # print(jwt_auth_enc_b64)
+
+        jwt_jwe = await crypto.pack_message(wallet_handle, encoded_jwt, [client_verkey], steward_verkey)
+        print(jwt_jwe)
+        # print(type(jwt_jwe))
+
+        # 6. create and return response
+
+        jwt_resp = {}
+        jwt_resp['jwe'] = jwt_jwe.decode('utf-8')
+
+        print_ok(f"jwt \n{json.dumps(jwt_resp)}")
+        return web.json_response(json.dumps(jwt_resp))
 
     else:
         print_fail('nonce yok! unauth donuluyor')
