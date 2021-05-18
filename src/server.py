@@ -179,13 +179,13 @@ async def handle_auth_response(request):
     steward_verkey = await did.key_for_local_did(wallet_handle, steward_did)
     print_warn(f"steward verkey: {steward_verkey}")
 
-    client_verkey, msg = await crypto.auth_decrypt(wallet_handle,steward_verkey, response_msg)
-    print_ok(f"client verkey: {client_verkey}")
+    client_fetched_verkey, msg = await crypto.auth_decrypt(wallet_handle,steward_verkey, response_msg)
+    print_ok(f"client_fetched_verkey: {client_fetched_verkey}")
     print_ok(f"msg: {msg}")
     nonce = msg.decode('utf-8')
 
     if nonce in app['nonces']:
-        print_ok('nonce var jwt donuluyor')
+        print_ok('nonce gecerli jwt donuluyor')
 
         # 4. generate jwt with hs256 
 
@@ -194,22 +194,15 @@ async def handle_auth_response(request):
         encoded_jwt = jwt.encode(payload, 'secret', algorithm="HS256")
         print_ok(f"jwt: {encoded_jwt}")
 
-        # 5. return jwt with auth encrypt
+        # 5. return jwt with jwe
 
-        # jwt_auth_enc = await crypto.auth_crypt(wallet_handle, steward_verkey, client_verkey, encoded_jwt)
-        # print(f"jwt_auth_enc: {jwt_auth_enc}")
-        # jwt_auth_enc_b64 = base64.b64encode(jwt_auth_enc).decode('ascii')
-        # print(jwt_auth_enc_b64)
-
-        jwt_jwe = await crypto.pack_message(wallet_handle, encoded_jwt, [client_verkey], steward_verkey)
+        jwt_jwe = await crypto.pack_message(wallet_handle, encoded_jwt, [client_fetched_verkey], steward_verkey)
         print(jwt_jwe)
-        # print(type(jwt_jwe))
 
         # 6. create and return response
 
         jwt_resp = {}
         jwt_resp['jwe'] = jwt_jwe.decode('utf-8')
-
         print_ok(f"jwt \n{json.dumps(jwt_resp)}")
         return web.json_response(json.dumps(jwt_resp))
 
@@ -221,8 +214,6 @@ async def handle_auth_response(request):
 
 if __name__ == '__main__':
     PORT = 3000
-
-    # load server_qr.json from file and show qr on terminal
 
     routes = []
     routes.append(web.get('/availablecreds', handle_available_creds))
