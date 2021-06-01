@@ -129,6 +129,8 @@ async def handle_auth_challenge(request):
     GET /auth/challenge
         - challenge jsonu doner. ve terminalde bastirir
     '''
+
+    print_warn("handle auth challenge starting")
     challenge = {}
     print_ok(indy_config['steward_did'])
     challenge['sdid'] = indy_config['steward_did']
@@ -160,6 +162,7 @@ async def handle_auth_response(request):
         - daha sonra kullanmak uzere jwt tokenini alir.
     '''
 
+    print_warn("handle auth response starting")
     wallet_handle = app['wallet_handle']
     pool_handle = app['pool_handle']
 
@@ -169,7 +172,8 @@ async def handle_auth_response(request):
     response = json.loads(post_body)
     print_warn(post_body)
     client_did = response['sender_did']
-    client_fetched_verkey = await did.key_for_did(pool_handle, wallet_handle, client_did)
+
+    # client_fetched_verkey = await did.key_for_did(pool_handle, wallet_handle, client_did)
     response_msg_b64 = response['response_msg']
     response_msg = base64.b64decode(response_msg_b64)
 
@@ -179,7 +183,7 @@ async def handle_auth_response(request):
     steward_verkey = await did.key_for_local_did(wallet_handle, steward_did)
     print_warn(f"steward verkey: {steward_verkey}")
 
-    client_fetched_verkey, msg = await crypto.auth_decrypt(wallet_handle,steward_verkey, response_msg)
+    client_fetched_verkey, msg = await crypto.auth_decrypt(wallet_handle, steward_verkey, response_msg)
     print_ok(f"client_fetched_verkey: {client_fetched_verkey}")
     print_ok(f"msg: {msg}")
     nonce = msg.decode('utf-8')
@@ -188,23 +192,20 @@ async def handle_auth_response(request):
         print_ok('nonce gecerli jwt donuluyor')
 
         # 4. generate jwt with hs256 
-
         payload = {'iss': 'did:sov:' + client_did}
         print_ok(f"payload: {payload}")
         encoded_jwt = jwt.encode(payload, 'secret', algorithm="HS256")
         print_ok(f"jwt: {encoded_jwt}")
 
         # 5. return jwt with jwe
-
         jwt_jwe = await crypto.pack_message(wallet_handle, encoded_jwt, [client_fetched_verkey], steward_verkey)
         print(jwt_jwe)
 
         # 6. create and return response
-
         jwt_resp = {}
         jwt_resp['jwe'] = jwt_jwe.decode('utf-8')
         print_ok(f"jwt \n{json.dumps(jwt_resp)}")
-        return web.json_response(json.dumps(jwt_resp))
+        return Response(text=jwt_jwe.decode('utf-8'))
 
     else:
         print_fail('nonce yok! unauth donuluyor')
